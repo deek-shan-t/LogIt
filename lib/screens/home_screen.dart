@@ -4,8 +4,10 @@ import '../providers/log_provider.dart';
 import '../providers/tag_provider.dart';
 import '../widgets/log_entry_card.dart';
 import '../models/log_entry.dart';
-import 'add_edit_log_screen.dart';
+import 'add_log_screen.dart';
+import 'edit_log_screen.dart';
 import '../utils/developer_utils.dart';
+import '../theme/app_theme.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -26,18 +28,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    
     return Scaffold(
       appBar: AppBar(
         title: const Text('Logit'),
-        backgroundColor: theme.colorScheme.inversePrimary,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.science),
-            onPressed: () => DeveloperUtils.createSampleData(context),
-            tooltip: 'Create Sample Data',
-          ),
+          // IconButton(
+          //   icon: const Icon(Icons.science),
+          //   onPressed: () => DeveloperUtils.createSampleData(context),
+          //   tooltip: 'Create Sample Data',
+          // ),
           IconButton(
             icon: const Icon(Icons.refresh),
             onPressed: () {
@@ -89,31 +88,29 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildWelcomeCard(BuildContext context, LogProvider logProvider, TagProvider tagProvider) {
-    final theme = Theme.of(context);
     final username = 'User'; // We can get this from PreferencesService later
     final now = DateTime.now();
     final greeting = _getGreeting(now.hour);
     
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(AppTheme.spacingXl),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               '$greeting, $username!',
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+              style: AppTheme.headerText.copyWith(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppTheme.spacingSm),
             Text(
               _formatDate(now),
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+              style: TextStyle(
+                fontSize: 14,
+                color: AppTheme.secondaryTextColor,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppTheme.spacingLg),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -122,21 +119,21 @@ class _HomeScreenState extends State<HomeScreen> {
                   'Today\'s Logs',
                   logProvider.getLogsForDate(now).length.toString(),
                   Icons.today,
-                  theme.colorScheme.primary,
+                  AppTheme.accentPrimary,
                 ),
                 _buildQuickStat(
                   context,
                   'Total Logs',
                   logProvider.totalLogsCount.toString(),
                   Icons.article,
-                  theme.colorScheme.secondary,
+                  AppTheme.accentSecondary,
                 ),
                 _buildQuickStat(
                   context,
                   'Tags',
                   tagProvider.totalTagsCount.toString(),
                   Icons.label,
-                  theme.colorScheme.tertiary,
+                  AppTheme.accentSuccess,
                 ),
               ],
             ),
@@ -421,7 +418,7 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => AddEditLogScreen(logEntry: log),
+        builder: (context) => EditLogScreen(logEntry: log),
       ),
     ).then((result) {
       if (result == true) {
@@ -434,7 +431,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _showAddLogDialog(BuildContext context) {
     showDialog(
       context: context,
-      builder: (context) => const AddEditLogScreen(isDialog: true),
+      builder: (context) => const AddLogScreen(isDialog: true),
     ).then((result) {
       if (result == true) {
         // Log was created, refresh the UI

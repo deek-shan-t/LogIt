@@ -1,26 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../models/log_entry.dart';
-import '../models/tag.dart';
 import '../providers/log_provider.dart';
 import '../providers/tag_provider.dart';
 import '../widgets/tag_chip.dart';
+import '../theme/app_theme.dart';
 
-class AddEditLogScreen extends StatefulWidget {
-  final LogEntry? logEntry; // null for add mode, existing entry for edit mode
+class AddLogScreen extends StatefulWidget {
   final bool isDialog; // true for dialog mode, false for full screen
 
-  const AddEditLogScreen({
+  const AddLogScreen({
     super.key,
-    this.logEntry,
     this.isDialog = false,
   });
 
   @override
-  State<AddEditLogScreen> createState() => _AddEditLogScreenState();
+  State<AddLogScreen> createState() => _AddLogScreenState();
 }
 
-class _AddEditLogScreenState extends State<AddEditLogScreen> {
+class _AddLogScreenState extends State<AddLogScreen> {
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -38,29 +35,9 @@ class _AddEditLogScreenState extends State<AddEditLogScreen> {
   @override
   void initState() {
     super.initState();
-    _initializeFields();
-  }
-
-  void _initializeFields() {
-    if (widget.logEntry != null) {
-      // Edit mode - populate fields
-      final log = widget.logEntry!;
-      _titleController.text = log.title;
-      _descriptionController.text = log.description;
-      _selectedDate = DateTime(log.dateTime.year, log.dateTime.month, log.dateTime.day);
-      _selectedTime = TimeOfDay(hour: log.dateTime.hour, minute: log.dateTime.minute);
-      _selectedTagIds.addAll(log.tags);
-      
-      if (log.reminder != null) {
-        _hasReminder = true;
-        _reminderDate = DateTime(log.reminder!.year, log.reminder!.month, log.reminder!.day);
-        _reminderTime = TimeOfDay(hour: log.reminder!.hour, minute: log.reminder!.minute);
-      }
-    } else {
-      // Add mode - set defaults
-      _selectedDate = DateTime.now();
-      _selectedTime = TimeOfDay.now();
-    }
+    // Set defaults for add mode
+    _selectedDate = DateTime.now();
+    _selectedTime = TimeOfDay.now();
   }
 
   @override
@@ -72,40 +49,34 @@ class _AddEditLogScreenState extends State<AddEditLogScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isEditing = widget.logEntry != null;
-    
     if (widget.isDialog) {
       return Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        backgroundColor: AppTheme.backgroundSecondary,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusMedium)),
         child: Container(
           constraints: const BoxConstraints(maxHeight: 600, maxWidth: 500),
-          child: _buildContent(context, theme, isEditing),
+          child: _buildContent(context),
         ),
       );
     }
     
     return Scaffold(
       appBar: AppBar(
-        title: Text(isEditing ? 'Edit Log' : 'Add New Log'),
-        backgroundColor: theme.colorScheme.inversePrimary,
-        actions: [
-          if (isEditing)
-            IconButton(
-              icon: const Icon(Icons.delete, color: Colors.red),
-              onPressed: () => _showDeleteConfirmation(context),
-            ),
-        ],
+        title: Text(
+          'Add New Log',
+          style: AppTheme.titleText,
+        ),
+        backgroundColor: AppTheme.backgroundSecondary,
       ),
-      body: _buildContent(context, theme, isEditing),
+      body: _buildContent(context),
     );
   }
 
-  Widget _buildContent(BuildContext context, ThemeData theme, bool isEditing) {
+  Widget _buildContent(BuildContext context) {
     return Consumer2<LogProvider, TagProvider>(
       builder: (context, logProvider, tagProvider, child) {
         return SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppTheme.spacingLg),
           child: Form(
             key: _formKey,
             child: Column(
@@ -116,45 +87,40 @@ class _AddEditLogScreenState extends State<AddEditLogScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        isEditing ? 'Edit Log' : 'Add New Log',
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
+                        'Add New Log',
+                        style: AppTheme.titleText.copyWith(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.close),
+                        icon: Icon(Icons.close, color: AppTheme.textSecondary),
                         onPressed: () => Navigator.pop(context),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppTheme.spacingLg),
                 ],
                 
-                // Title field
-                _buildTitleField(theme),
-                const SizedBox(height: 16),
+                _buildTitleField(),
+                const SizedBox(height: AppTheme.spacingLg),
                 
-                // Description field
-                _buildDescriptionField(theme),
-                const SizedBox(height: 16),
+                _buildDescriptionField(),
+                const SizedBox(height: AppTheme.spacingLg),
                 
-                // Date and time selection
-                _buildDateTimeSection(theme),
-                const SizedBox(height: 16),
+                _buildDateTimeSection(),
+                const SizedBox(height: AppTheme.spacingLg),
                 
-                // Tags section
-                _buildTagsSection(theme, tagProvider),
-                const SizedBox(height: 16),
+                _buildTagsSection(tagProvider),
+                const SizedBox(height: AppTheme.spacingLg),
                 
-                // Reminder section
-                _buildReminderSection(theme),
-                const SizedBox(height: 24),
+                _buildReminderSection(),
+                const SizedBox(height: AppTheme.spacingXxl),
                 
-                // Action buttons
-                _buildActionButtons(context, theme, isEditing, logProvider, tagProvider),
+                _buildActionButtons(context, logProvider, tagProvider),
                 
                 if (widget.isDialog)
-                  const SizedBox(height: 16),
+                  const SizedBox(height: AppTheme.spacingLg),
               ],
             ),
           ),
@@ -163,14 +129,22 @@ class _AddEditLogScreenState extends State<AddEditLogScreen> {
     );
   }
 
-  Widget _buildTitleField(ThemeData theme) {
+  Widget _buildTitleField() {
     return TextFormField(
       controller: _titleController,
+      style: AppTheme.bodyText,
       decoration: InputDecoration(
         labelText: 'Title *',
+        labelStyle: AppTheme.bodyText.copyWith(color: AppTheme.textSecondary),
         hintText: 'Enter log title',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        prefixIcon: const Icon(Icons.title),
+        hintStyle: AppTheme.bodyText.copyWith(color: AppTheme.textSecondary),
+        filled: true,
+        fillColor: AppTheme.backgroundTertiary,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+          borderSide: BorderSide.none,
+        ),
+        prefixIcon: Icon(Icons.title, color: AppTheme.textSecondary),
       ),
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
@@ -186,14 +160,22 @@ class _AddEditLogScreenState extends State<AddEditLogScreen> {
     );
   }
 
-  Widget _buildDescriptionField(ThemeData theme) {
+  Widget _buildDescriptionField() {
     return TextFormField(
       controller: _descriptionController,
+      style: AppTheme.bodyText,
       decoration: InputDecoration(
         labelText: 'Description',
+        labelStyle: AppTheme.bodyText.copyWith(color: AppTheme.textSecondary),
         hintText: 'Enter detailed description (optional)',
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        prefixIcon: const Icon(Icons.description),
+        hintStyle: AppTheme.bodyText.copyWith(color: AppTheme.textSecondary),
+        filled: true,
+        fillColor: AppTheme.backgroundTertiary,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+          borderSide: BorderSide.none,
+        ),
+        prefixIcon: Icon(Icons.description, color: AppTheme.textSecondary),
         alignLabelWithHint: true,
       ),
       maxLines: 3,
@@ -202,36 +184,39 @@ class _AddEditLogScreenState extends State<AddEditLogScreen> {
     );
   }
 
-  Widget _buildDateTimeSection(ThemeData theme) {
+  Widget _buildDateTimeSection() {
     return Card(
+      color: AppTheme.backgroundSecondary,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+        side: BorderSide(color: AppTheme.border, width: 1),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppTheme.spacingLg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Date & Time',
-              style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 12),
+            Text('Date & Time', style: AppTheme.titleText),
+            const SizedBox(height: AppTheme.spacingMd),
             Row(
               children: [
                 Expanded(
                   child: ListTile(
-                    leading: const Icon(Icons.calendar_today),
-                    title: Text(_formatDate(_selectedDate)),
-                    subtitle: const Text('Date'),
+                    leading: Icon(Icons.calendar_today, color: AppTheme.accentPrimary),
+                    title: Text(_formatDate(_selectedDate), style: AppTheme.bodyText),
+                    subtitle: Text('Date', style: AppTheme.bodyText.copyWith(color: AppTheme.textSecondary)),
                     onTap: () => _selectDate(context),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusSmall)),
                   ),
                 ),
                 Expanded(
                   child: ListTile(
-                    leading: const Icon(Icons.access_time),
-                    title: Text(_selectedTime.format(context)),
-                    subtitle: const Text('Time'),
+                    leading: Icon(Icons.access_time, color: AppTheme.accentPrimary),
+                    title: Text(_selectedTime.format(context), style: AppTheme.bodyText),
+                    subtitle: Text('Time', style: AppTheme.bodyText.copyWith(color: AppTheme.textSecondary)),
                     onTap: () => _selectTime(context),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusSmall)),
                   ),
                 ),
               ],
@@ -242,42 +227,43 @@ class _AddEditLogScreenState extends State<AddEditLogScreen> {
     );
   }
 
-  Widget _buildTagsSection(ThemeData theme, TagProvider tagProvider) {
+  Widget _buildTagsSection(TagProvider tagProvider) {
     return Card(
+      color: AppTheme.backgroundSecondary,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+        side: BorderSide(color: AppTheme.border, width: 1),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppTheme.spacingLg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Tags',
-                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-                ),
+                Text('Tags', style: AppTheme.titleText),
                 TextButton.icon(
                   onPressed: () => _showCreateTagDialog(context, tagProvider),
-                  icon: const Icon(Icons.add, size: 16),
-                  label: const Text('New Tag'),
+                  icon: Icon(Icons.add, size: 16, color: AppTheme.accentPrimary),
+                  label: Text('New Tag', style: AppTheme.bodyText.copyWith(color: AppTheme.accentPrimary)),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: AppTheme.spacingMd),
             if (tagProvider.tags.isEmpty)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
+                padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingSm),
                 child: Text(
                   'No tags available. Create your first tag!',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
-                  ),
+                  style: AppTheme.bodyText.copyWith(color: AppTheme.textSecondary),
                 ),
               )
             else
               Wrap(
-                spacing: 8,
-                runSpacing: 8,
+                spacing: AppTheme.spacingSm,
+                runSpacing: AppTheme.spacingSm,
                 children: tagProvider.tags.map((tag) {
                   final isSelected = _selectedTagIds.contains(tag.id);
                   return TagChip(
@@ -289,12 +275,10 @@ class _AddEditLogScreenState extends State<AddEditLogScreen> {
                 }).toList(),
               ),
             if (_selectedTagIds.isNotEmpty) ...[
-              const SizedBox(height: 8),
+              const SizedBox(height: AppTheme.spacingSm),
               Text(
                 '${_selectedTagIds.length} tag${_selectedTagIds.length == 1 ? '' : 's'} selected',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.primary,
-                ),
+                style: AppTheme.bodyText.copyWith(color: AppTheme.accentPrimary),
               ),
             ],
           ],
@@ -303,22 +287,26 @@ class _AddEditLogScreenState extends State<AddEditLogScreen> {
     );
   }
 
-  Widget _buildReminderSection(ThemeData theme) {
+  Widget _buildReminderSection() {
     return Card(
+      color: AppTheme.backgroundSecondary,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+        side: BorderSide(color: AppTheme.border, width: 1),
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppTheme.spacingLg),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Reminder',
-                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
-                ),
+                Text('Reminder', style: AppTheme.titleText),
                 Switch(
                   value: _hasReminder,
+                  activeColor: AppTheme.accentPrimary,
                   onChanged: (value) {
                     setState(() {
                       _hasReminder = value;
@@ -332,46 +320,50 @@ class _AddEditLogScreenState extends State<AddEditLogScreen> {
               ],
             ),
             if (_hasReminder) ...[
-              const SizedBox(height: 12),
+              const SizedBox(height: AppTheme.spacingMd),
               Row(
                 children: [
                   Expanded(
                     child: ListTile(
-                      leading: const Icon(Icons.notification_important),
-                      title: Text(_reminderDate != null ? _formatDate(_reminderDate!) : 'Select Date'),
-                      subtitle: const Text('Reminder Date'),
+                      leading: Icon(Icons.notification_important, color: AppTheme.accentPrimary),
+                      title: Text(
+                        _reminderDate != null ? _formatDate(_reminderDate!) : 'Select Date',
+                        style: AppTheme.bodyText,
+                      ),
+                      subtitle: Text('Reminder Date', style: AppTheme.bodyText.copyWith(color: AppTheme.textSecondary)),
                       onTap: () => _selectReminderDate(context),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusSmall)),
                     ),
                   ),
                   Expanded(
                     child: ListTile(
-                      leading: const Icon(Icons.schedule),
-                      title: Text(_reminderTime?.format(context) ?? 'Select Time'),
-                      subtitle: const Text('Reminder Time'),
+                      leading: Icon(Icons.schedule, color: AppTheme.accentPrimary),
+                      title: Text(
+                        _reminderTime?.format(context) ?? 'Select Time',
+                        style: AppTheme.bodyText,
+                      ),
+                      subtitle: Text('Reminder Time', style: AppTheme.bodyText.copyWith(color: AppTheme.textSecondary)),
                       onTap: () => _selectReminderTime(context),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusSmall)),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppTheme.spacingSm),
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(AppTheme.spacingSm),
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.primaryContainer.withOpacity(0.3),
-                  borderRadius: BorderRadius.circular(8),
+                  color: AppTheme.accentPrimary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.info_outline, size: 16, color: theme.colorScheme.primary),
-                    const SizedBox(width: 8),
+                    Icon(Icons.info_outline, size: 16, color: AppTheme.accentPrimary),
+                    const SizedBox(width: AppTheme.spacingSm),
                     Expanded(
                       child: Text(
                         'You\'ll receive a notification at the selected time',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.primary,
-                        ),
+                        style: AppTheme.bodyText.copyWith(color: AppTheme.accentPrimary),
                       ),
                     ),
                   ],
@@ -384,28 +376,35 @@ class _AddEditLogScreenState extends State<AddEditLogScreen> {
     );
   }
 
-  Widget _buildActionButtons(BuildContext context, ThemeData theme, bool isEditing, 
-                           LogProvider logProvider, TagProvider tagProvider) {
+  Widget _buildActionButtons(BuildContext context, LogProvider logProvider, TagProvider tagProvider) {
     return Row(
       children: [
         if (!widget.isDialog)
           Expanded(
             child: OutlinedButton(
               onPressed: _isLoading ? null : () => Navigator.pop(context),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppTheme.textSecondary,
+                side: BorderSide(color: AppTheme.border),
+              ),
               child: const Text('Cancel'),
             ),
           ),
-        if (!widget.isDialog) const SizedBox(width: 16),
+        if (!widget.isDialog) const SizedBox(width: AppTheme.spacingLg),
         Expanded(
           child: ElevatedButton(
             onPressed: _isLoading ? null : () => _saveLog(context, logProvider),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.accentPrimary,
+              foregroundColor: Colors.white,
+            ),
             child: _isLoading
                 ? const SizedBox(
                     height: 20,
                     width: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                   )
-                : Text(isEditing ? 'Update Log' : 'Create Log'),
+                : const Text('Create Log'),
           ),
         ),
       ],
@@ -502,45 +501,27 @@ class _AddEditLogScreenState extends State<AddEditLogScreen> {
           _reminderTime!.minute,
         );
         
-        // Validate reminder is in the future
         if (reminder.isBefore(DateTime.now())) {
           _showErrorSnackBar(context, 'Reminder must be set for a future time');
           return;
         }
       }
       
-      bool success;
-      if (widget.logEntry != null) {
-        // Update existing log
-        final updatedLog = widget.logEntry!.copyWith(
-          title: _titleController.text.trim(),
-          description: _descriptionController.text.trim(),
-          dateTime: dateTime,
-          tags: _selectedTagIds.toList(),
-          reminder: reminder,
-        );
-        success = await logProvider.updateLog(updatedLog);
-      } else {
-        // Create new log
-        success = await logProvider.createLog(
-          title: _titleController.text.trim(),
-          description: _descriptionController.text.trim(),
-          tags: _selectedTagIds.toList(),
-          reminder: reminder,
-          customDate: dateTime,
-        );
-      }
+      final success = await logProvider.createLog(
+        title: _titleController.text.trim(),
+        description: _descriptionController.text.trim(),
+        tags: _selectedTagIds.toList(),
+        reminder: reminder,
+        customDate: dateTime,
+      );
       
       if (success) {
         if (mounted) {
-          Navigator.pop(context, true); // Return true to indicate success
-          _showSuccessSnackBar(
-            context, 
-            widget.logEntry != null ? 'Log updated successfully!' : 'Log created successfully!'
-          );
+          Navigator.pop(context, true);
+          _showSuccessSnackBar(context, 'Log created successfully!');
         }
       } else {
-        _showErrorSnackBar(context, logProvider.error ?? 'Failed to save log');
+        _showErrorSnackBar(context, logProvider.error ?? 'Failed to create log');
       }
     } catch (e) {
       _showErrorSnackBar(context, 'An error occurred: $e');
@@ -558,47 +539,15 @@ class _AddEditLogScreenState extends State<AddEditLogScreen> {
     );
     
     if (result == true) {
-      // Tag was created, refresh UI
       setState(() {});
-    }
-  }
-
-  Future<void> _showDeleteConfirmation(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Log'),
-        content: Text('Are you sure you want to delete "${widget.logEntry!.title}"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-    
-    if (confirmed == true && mounted) {
-      final logProvider = context.read<LogProvider>();
-      final success = await logProvider.deleteLog(widget.logEntry!.id);
-      
-      if (success && mounted) {
-        Navigator.pop(context, true);
-        _showSuccessSnackBar(context, 'Log deleted successfully');
-      }
     }
   }
 
   void _showSuccessSnackBar(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
+        content: Text(message, style: AppTheme.bodyText),
+        backgroundColor: AppTheme.accentSuccess,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -607,8 +556,8 @@ class _AddEditLogScreenState extends State<AddEditLogScreen> {
   void _showErrorSnackBar(BuildContext context, String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
+        content: Text(message, style: AppTheme.bodyText),
+        backgroundColor: AppTheme.accentError,
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -660,29 +609,37 @@ class _CreateTagDialogState extends State<CreateTagDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    
     return AlertDialog(
-      title: const Text('Create New Tag'),
+      backgroundColor: AppTheme.backgroundSecondary,
+      title: Text('Create New Tag', style: AppTheme.titleText),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           TextField(
             controller: _tagNameController,
-            decoration: const InputDecoration(
+            style: AppTheme.bodyText,
+            decoration: InputDecoration(
               labelText: 'Tag Name',
+              labelStyle: AppTheme.bodyText.copyWith(color: AppTheme.textSecondary),
               hintText: 'Enter tag name',
+              hintStyle: AppTheme.bodyText.copyWith(color: AppTheme.textSecondary),
+              filled: true,
+              fillColor: AppTheme.backgroundTertiary,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                borderSide: BorderSide.none,
+              ),
             ),
             textCapitalization: TextCapitalization.words,
             autofocus: true,
           ),
-          const SizedBox(height: 16),
-          Text('Color', style: theme.textTheme.titleSmall),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppTheme.spacingLg),
+          Text('Color', style: AppTheme.titleText),
+          const SizedBox(height: AppTheme.spacingSm),
           Wrap(
-            spacing: 8,
-            runSpacing: 8,
+            spacing: AppTheme.spacingSm,
+            runSpacing: AppTheme.spacingSm,
             children: _predefinedColors.map((color) {
               final isSelected = color == _selectedColor;
               return GestureDetector(
@@ -694,7 +651,7 @@ class _CreateTagDialogState extends State<CreateTagDialog> {
                     color: Color(int.parse('0xFF${color.substring(1)}')),
                     borderRadius: BorderRadius.circular(20),
                     border: isSelected 
-                        ? Border.all(color: Colors.black, width: 3)
+                        ? Border.all(color: AppTheme.textPrimary, width: 3)
                         : null,
                   ),
                   child: isSelected
@@ -709,15 +666,20 @@ class _CreateTagDialogState extends State<CreateTagDialog> {
       actions: [
         TextButton(
           onPressed: _isLoading ? null : () => Navigator.pop(context, false),
+          style: TextButton.styleFrom(foregroundColor: AppTheme.textSecondary),
           child: const Text('Cancel'),
         ),
         ElevatedButton(
           onPressed: _isLoading ? null : _createTag,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppTheme.accentPrimary,
+            foregroundColor: Colors.white,
+          ),
           child: _isLoading
               ? const SizedBox(
                   width: 16,
                   height: 16,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                 )
               : const Text('Create'),
         ),

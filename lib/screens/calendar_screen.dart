@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/log_provider.dart';
+import '../theme/app_theme.dart';
 
 class CalendarScreen extends StatefulWidget {
   const CalendarScreen({super.key});
@@ -23,16 +24,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Calendar'),
-        backgroundColor: theme.colorScheme.inversePrimary,
+        title: Text('Calendar', style: AppTheme.titleText),
+        backgroundColor: AppTheme.backgroundSecondary,
         actions: [
           TextButton(
             onPressed: _goToToday,
-            child: const Text('Today'),
+            child: Text('Today', style: AppTheme.bodyText.copyWith(color: AppTheme.accentPrimary)),
           ),
         ],
       ),

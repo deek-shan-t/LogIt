@@ -8,8 +8,8 @@ import 'providers/log_provider.dart';
 import 'providers/tag_provider.dart';
 import 'screens/home_screen.dart';
 import 'screens/logs_screen.dart';
-import 'screens/add_edit_log_screen.dart';
 import 'screens/settings_screen.dart';
+import 'theme/app_theme.dart';
 
 void main() async {
   // Ensure Flutter binding is initialized
@@ -44,21 +44,8 @@ class LogitApp extends StatelessWidget {
         builder: (context, logProvider, child) {
           return MaterialApp(
             title: 'Logit',
-            theme: ThemeData(
-              colorScheme: ColorScheme.fromSeed(
-                seedColor: Colors.deepPurple,
-                brightness: Brightness.light,
-              ),
-              useMaterial3: true,
-            ),
-            darkTheme: ThemeData(
-              colorScheme: ColorScheme.fromSeed(
-                seedColor: Colors.deepPurple,
-                brightness: Brightness.dark,
-              ),
-              useMaterial3: true,
-            ),
-            themeMode: PreferencesService.themeMode,
+            theme: AppTheme.theme,
+            themeMode: ThemeMode.dark,
             home: const MainNavigationScreen(),
             debugShowCheckedModeBanner: false,
           );
@@ -81,7 +68,6 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   final List<Widget> _screens = [
     const HomeScreen(),
     const LogsScreen(),
-    const SizedBox(), // Placeholder for Add - handled by onTap
     const SettingsScreen(),
   ];
 
@@ -89,20 +75,15 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(
-        index: _currentIndex == 2 ? 0 : _currentIndex, // Show home if Add tab is selected
+        index: _currentIndex,
         children: _screens,
       ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (index) {
-          if (index == 2) {
-            // Add button pressed - show dialog
-            _showAddLogDialog(context);
-          } else {
-            setState(() {
-              _currentIndex = index;
-            });
-          }
+          setState(() {
+            _currentIndex = index;
+          });
         },
         destinations: const [
           NavigationDestination(
@@ -116,24 +97,12 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             label: 'Logs',
           ),
           NavigationDestination(
-            icon: Icon(Icons.add_circle_outline),
-            selectedIcon: Icon(Icons.add_circle),
-            label: 'Add',
-          ),
-          NavigationDestination(
             icon: Icon(Icons.settings_outlined),
             selectedIcon: Icon(Icons.settings),
             label: 'Settings',
           ),
         ],
       ),
-    );
-  }
-
-  void _showAddLogDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => const AddEditLogScreen(isDialog: true),
     );
   }
 }

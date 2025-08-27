@@ -5,8 +5,9 @@ import '../providers/tag_provider.dart';
 import '../widgets/log_entry_card.dart';
 import '../widgets/tag_chip.dart';
 import '../models/log_entry.dart';
+import '../theme/app_theme.dart';
 import 'calendar_screen.dart';
-import 'add_edit_log_screen.dart';
+import 'edit_log_screen.dart';
 
 class LogsScreen extends StatefulWidget {
   const LogsScreen({super.key});
@@ -26,20 +27,27 @@ class _LogsScreenState extends State<LogsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    
     return Scaffold(
       appBar: AppBar(
-        title: const Text('All Logs'),
-        backgroundColor: theme.colorScheme.inversePrimary,
+        title: Text(
+          'All Logs',
+          style: AppTheme.titleText,
+        ),
+        backgroundColor: AppTheme.backgroundSecondary,
         actions: [
           IconButton(
-            icon: const Icon(Icons.calendar_month),
+            icon: Icon(
+              Icons.calendar_month,
+              color: AppTheme.textPrimary,
+            ),
             onPressed: () => _openCalendar(context),
             tooltip: 'Calendar View',
           ),
           IconButton(
-            icon: const Icon(Icons.search),
+            icon: Icon(
+              Icons.search,
+              color: AppTheme.textPrimary,
+            ),
             onPressed: () => _showSearch(context),
           ),
         ],
@@ -63,18 +71,17 @@ class _LogsScreenState extends State<LogsScreen> {
   }
 
   Widget _buildFiltersSection(BuildContext context, LogProvider logProvider, TagProvider tagProvider) {
-    final theme = Theme.of(context);
     final hasActiveFilters = logProvider.selectedTags.isNotEmpty || 
                             logProvider.activeFilter != LogFilter.all ||
                             logProvider.searchQuery.isNotEmpty;
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(AppTheme.spacingLg),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
+        color: AppTheme.backgroundSecondary,
         border: Border(
           bottom: BorderSide(
-            color: theme.colorScheme.outline.withOpacity(0.2),
+            color: AppTheme.border.withValues(alpha: 0.2),
           ),
         ),
       ),
@@ -84,27 +91,41 @@ class _LogsScreenState extends State<LogsScreen> {
           // Search bar
           TextField(
             controller: _searchController,
+            style: AppTheme.bodyText,
             decoration: InputDecoration(
               hintText: 'Search logs...',
-              prefixIcon: const Icon(Icons.search),
+              hintStyle: AppTheme.bodyText.copyWith(color: AppTheme.textSecondary),
+              prefixIcon: Icon(
+                Icons.search,
+                color: AppTheme.textSecondary,
+              ),
               suffixIcon: _searchController.text.isNotEmpty
                   ? IconButton(
-                      icon: const Icon(Icons.clear),
+                      icon: Icon(
+                        Icons.clear,
+                        color: AppTheme.textSecondary,
+                      ),
                       onPressed: () {
                         _searchController.clear();
                         logProvider.clearSearch();
                       },
                     )
                   : null,
+              filled: true,
+              fillColor: AppTheme.backgroundTertiary,
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                borderSide: BorderSide.none,
               ),
-              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: AppTheme.spacingLg, 
+                vertical: AppTheme.spacingMd,
+              ),
             ),
             onChanged: (value) => logProvider.setSearchQuery(value),
           ),
           
-          const SizedBox(height: 12),
+          const SizedBox(height: AppTheme.spacingMd),
           
           // Filter chips
           SingleChildScrollView(
@@ -120,7 +141,7 @@ class _LogsScreenState extends State<LogsScreen> {
                   icon: Icons.calendar_today,
                 ),
                 
-                const SizedBox(width: 8),
+                const SizedBox(width: AppTheme.spacingSm),
                 
                 // Log filter
                 _buildFilterChip(
@@ -131,11 +152,11 @@ class _LogsScreenState extends State<LogsScreen> {
                   icon: Icons.filter_list,
                 ),
                 
-                const SizedBox(width: 8),
+                const SizedBox(width: AppTheme.spacingSm),
                 
                 // Tag filters
                 ...tagProvider.tags.map((tag) => Padding(
-                  padding: const EdgeInsets.only(right: 8),
+                  padding: const EdgeInsets.only(right: AppTheme.spacingSm),
                   child: TagChip(
                     tag: tag,
                     isSelected: logProvider.selectedTags.contains(tag.id),
@@ -202,16 +223,18 @@ class _LogsScreenState extends State<LogsScreen> {
     IconData? icon,
     bool isDestructive = false,
   }) {
-    final theme = Theme.of(context);
-    final color = isDestructive ? theme.colorScheme.error : theme.colorScheme.primary;
+    final color = isDestructive ? AppTheme.accentError : AppTheme.accentPrimary;
     
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppTheme.spacingMd, 
+          vertical: AppTheme.spacingXs,
+        ),
         decoration: BoxDecoration(
-          color: isSelected ? color : color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(16),
+          color: isSelected ? color : color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(AppTheme.spacingLg),
           border: Border.all(color: color),
         ),
         child: Row(
@@ -223,11 +246,11 @@ class _LogsScreenState extends State<LogsScreen> {
                 size: 16,
                 color: isSelected ? Colors.white : color,
               ),
-              const SizedBox(width: 4),
+              const SizedBox(width: AppTheme.spacingXs),
             ],
             Text(
               label,
-              style: TextStyle(
+              style: AppTheme.bodyText.copyWith(
                 color: isSelected ? Colors.white : color,
                 fontWeight: FontWeight.w500,
               ),
@@ -239,43 +262,45 @@ class _LogsScreenState extends State<LogsScreen> {
   }
 
   Widget _buildEmptyState(BuildContext context, LogProvider logProvider) {
-    final theme = Theme.of(context);
     final hasFilters = logProvider.selectedTags.isNotEmpty || 
                      logProvider.activeFilter != LogFilter.all ||
                      logProvider.searchQuery.isNotEmpty;
     
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(AppTheme.spacingXxl + AppTheme.spacingSm),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               hasFilters ? Icons.search_off : Icons.article_outlined,
               size: 64,
-              color: theme.colorScheme.onSurfaceVariant.withOpacity(0.5),
+              color: AppTheme.textSecondary.withValues(alpha: 0.5),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppTheme.spacingLg),
             Text(
               hasFilters ? 'No logs match your filters' : 'No logs yet',
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+              style: AppTheme.titleText.copyWith(
+                color: AppTheme.textSecondary,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppTheme.spacingSm),
             Text(
               hasFilters 
                   ? 'Try adjusting your search or filters'
                   : 'Create your first log entry to get started!',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+              style: AppTheme.bodyText.copyWith(
+                color: AppTheme.textSecondary,
               ),
               textAlign: TextAlign.center,
             ),
             if (hasFilters) ...[
-              const SizedBox(height: 16),
+              const SizedBox(height: AppTheme.spacingLg),
               TextButton(
                 onPressed: () => _clearAllFilters(logProvider),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppTheme.accentPrimary,
+                ),
                 child: const Text('Clear Filters'),
               ),
             ],
@@ -346,22 +371,27 @@ class _LogsScreenState extends State<LogsScreen> {
   void _showLogFilterOptions(BuildContext context, LogProvider logProvider) {
     showModalBottomSheet(
       context: context,
+      backgroundColor: AppTheme.backgroundSecondary,
       builder: (context) => Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(AppTheme.spacingLg),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'Filter Logs',
-              style: Theme.of(context).textTheme.titleLarge,
+              style: AppTheme.titleText,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppTheme.spacingLg),
             ...LogFilter.values.map((filter) => ListTile(
-              title: Text(_getLogFilterLabel(filter)),
+              title: Text(
+                _getLogFilterLabel(filter),
+                style: AppTheme.bodyText,
+              ),
               leading: Radio<LogFilter>(
                 value: filter,
                 groupValue: logProvider.activeFilter,
+                activeColor: AppTheme.accentPrimary,
                 onChanged: (value) {
                   if (value != null) {
                     logProvider.setActiveFilter(value);
@@ -395,7 +425,7 @@ class _LogsScreenState extends State<LogsScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => AddEditLogScreen(logEntry: log),
+        builder: (context) => EditLogScreen(logEntry: log),
       ),
     ).then((result) {
       if (result == true) {
@@ -409,11 +439,21 @@ class _LogsScreenState extends State<LogsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Log'),
-        content: Text('Are you sure you want to delete "${log.title}"?'),
+        backgroundColor: AppTheme.backgroundSecondary,
+        title: Text(
+          'Delete Log',
+          style: AppTheme.titleText,
+        ),
+        content: Text(
+          'Are you sure you want to delete "${log.title}"?',
+          style: AppTheme.bodyText,
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              foregroundColor: AppTheme.textSecondary,
+            ),
             child: const Text('Cancel'),
           ),
           TextButton(
@@ -421,10 +461,19 @@ class _LogsScreenState extends State<LogsScreen> {
               context.read<LogProvider>().deleteLog(log.id);
               Navigator.pop(context);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Log deleted')),
+                SnackBar(
+                  content: Text(
+                    'Log deleted',
+                    style: AppTheme.bodyText,
+                  ),
+                  backgroundColor: AppTheme.backgroundSecondary,
+                ),
               );
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            style: TextButton.styleFrom(
+              foregroundColor: AppTheme.accentError,
+            ),
+            child: const Text('Delete'),
           ),
         ],
       ),

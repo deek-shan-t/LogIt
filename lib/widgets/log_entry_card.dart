@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/log_entry.dart';
 import '../models/tag.dart';
+import '../theme/app_theme.dart';
 import 'tag_chip.dart';
 
 class LogEntryCard extends StatelessWidget {
@@ -34,19 +35,22 @@ class LogEntryCard extends StatelessWidget {
         .toList();
 
     return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(
+        horizontal: AppTheme.spacingLg, 
+        vertical: AppTheme.spacingSm,
+      ),
       elevation: isSelected ? 4 : 1,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
         side: isSelected 
-            ? BorderSide(color: theme.colorScheme.primary, width: 2)
+            ? const BorderSide(color: AppTheme.accentPrimary, width: 2)
             : BorderSide.none,
       ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(AppTheme.spacingLg),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [

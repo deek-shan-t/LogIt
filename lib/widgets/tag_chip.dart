@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../models/tag.dart';
+import '../theme/app_theme.dart';
 
 class TagChip extends StatelessWidget {
   final Tag tag;
@@ -19,7 +20,6 @@ class TagChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final tagColor = Color(int.parse('0xFF${tag.colorHex?.substring(1) ?? 'FF5722'}'));
     
     final chipSize = _getChipSize();
@@ -34,7 +34,7 @@ class TagChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected 
               ? tagColor 
-              : tagColor.withOpacity(0.1),
+              : tagColor.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(chipSize.borderRadius),
           border: Border.all(
             color: tagColor,
@@ -46,7 +46,7 @@ class TagChip extends StatelessWidget {
           children: [
             Text(
               tag.name,
-              style: theme.textTheme.bodySmall?.copyWith(
+              style: AppTheme.bodyText.copyWith(
                 color: isSelected 
                     ? Colors.white 
                     : tagColor,
