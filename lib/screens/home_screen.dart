@@ -20,9 +20,11 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Ensure we're showing today's data
+    // Ensure we're showing today's data and both providers are initialized
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<LogProvider>().selectToday();
+      // Ensure TagProvider is also refreshed on home screen load
+      context.read<TagProvider>().loadTags();
     });
   }
 
@@ -48,6 +50,13 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Consumer2<LogProvider, TagProvider>(
         builder: (context, logProvider, tagProvider, child) {
+          // Show loading indicator if TagProvider is still loading
+          if (tagProvider.isLoading) {
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
+          }
+          
           final todayLogs = logProvider.getLogsForDate(DateTime.now());
           final upcomingReminders = logProvider.getLogsWithActiveReminders();
           

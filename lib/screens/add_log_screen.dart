@@ -193,16 +193,17 @@ class _AddLogScreenState extends State<AddLogScreen> {
         side: BorderSide(color: AppTheme.border, width: 1),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(AppTheme.spacingLg),
+        padding: const EdgeInsets.all(AppTheme.spacingMd), // Reduced from spacingLg
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Date & Time', style: AppTheme.titleText),
-            const SizedBox(height: AppTheme.spacingMd),
+            const SizedBox(height: AppTheme.spacingSm), // Reduced from spacingMd
             Row(
               children: [
                 Expanded(
                   child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm), // Reduced padding
                     leading: Icon(Icons.calendar_today, color: AppTheme.accentPrimary),
                     title: Text(_formatDate(_selectedDate), style: AppTheme.bodyText),
                     subtitle: Text('Date', style: AppTheme.bodyText.copyWith(color: AppTheme.textSecondary)),
@@ -210,8 +211,10 @@ class _AddLogScreenState extends State<AddLogScreen> {
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusSmall)),
                   ),
                 ),
+                const SizedBox(width: AppTheme.spacingSm), // Add spacing between the two ListTiles
                 Expanded(
                   child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm), // Reduced padding
                     leading: Icon(Icons.access_time, color: AppTheme.accentPrimary),
                     title: Text(_selectedTime.format(context), style: AppTheme.bodyText),
                     subtitle: Text('Time', style: AppTheme.bodyText.copyWith(color: AppTheme.textSecondary)),
@@ -236,7 +239,7 @@ class _AddLogScreenState extends State<AddLogScreen> {
         side: BorderSide(color: AppTheme.border, width: 1),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(AppTheme.spacingLg),
+        padding: const EdgeInsets.all(AppTheme.spacingMd), // Reduced from spacingLg
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -248,13 +251,18 @@ class _AddLogScreenState extends State<AddLogScreen> {
                   onPressed: () => _showCreateTagDialog(context, tagProvider),
                   icon: Icon(Icons.add, size: 16, color: AppTheme.accentPrimary),
                   label: Text('New Tag', style: AppTheme.bodyText.copyWith(color: AppTheme.accentPrimary)),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm, vertical: AppTheme.spacingXs), // Reduced button padding
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
                 ),
               ],
             ),
-            const SizedBox(height: AppTheme.spacingMd),
+            const SizedBox(height: AppTheme.spacingSm), // Reduced from spacingMd
             if (tagProvider.tags.isEmpty)
               Padding(
-                padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingSm),
+                padding: const EdgeInsets.symmetric(vertical: AppTheme.spacingXs), // Reduced from spacingSm
                 child: Text(
                   'No tags available. Create your first tag!',
                   style: AppTheme.bodyText.copyWith(color: AppTheme.textSecondary),
@@ -262,8 +270,8 @@ class _AddLogScreenState extends State<AddLogScreen> {
               )
             else
               Wrap(
-                spacing: AppTheme.spacingSm,
-                runSpacing: AppTheme.spacingSm,
+                spacing: AppTheme.spacingXs, // Reduced from spacingSm
+                runSpacing: AppTheme.spacingXs, // Reduced from spacingSm
                 children: tagProvider.tags.map((tag) {
                   final isSelected = _selectedTagIds.contains(tag.id);
                   return TagChip(
@@ -275,7 +283,7 @@ class _AddLogScreenState extends State<AddLogScreen> {
                 }).toList(),
               ),
             if (_selectedTagIds.isNotEmpty) ...[
-              const SizedBox(height: AppTheme.spacingSm),
+              const SizedBox(height: AppTheme.spacingXs), // Reduced from spacingSm
               Text(
                 '${_selectedTagIds.length} tag${_selectedTagIds.length == 1 ? '' : 's'} selected',
                 style: AppTheme.bodyText.copyWith(color: AppTheme.accentPrimary),
@@ -296,7 +304,7 @@ class _AddLogScreenState extends State<AddLogScreen> {
         side: BorderSide(color: AppTheme.border, width: 1),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(AppTheme.spacingLg),
+        padding: const EdgeInsets.all(AppTheme.spacingMd), // Reduced from spacingLg
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -307,6 +315,7 @@ class _AddLogScreenState extends State<AddLogScreen> {
                 Switch(
                   value: _hasReminder,
                   activeColor: AppTheme.accentPrimary,
+                  materialTapTargetSize: MaterialTapTargetSize.shrinkWrap, // Reduce switch size
                   onChanged: (value) {
                     setState(() {
                       _hasReminder = value;
@@ -320,55 +329,58 @@ class _AddLogScreenState extends State<AddLogScreen> {
               ],
             ),
             if (_hasReminder) ...[
-              const SizedBox(height: AppTheme.spacingMd),
+              const SizedBox(height: AppTheme.spacingSm), // Reduced from spacingMd
               Row(
                 children: [
                   Expanded(
                     child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm), // Reduced padding
                       leading: Icon(Icons.notification_important, color: AppTheme.accentPrimary),
                       title: Text(
                         _reminderDate != null ? _formatDate(_reminderDate!) : 'Select Date',
                         style: AppTheme.bodyText,
                       ),
-                      subtitle: Text('Reminder Date', style: AppTheme.bodyText.copyWith(color: AppTheme.textSecondary)),
+                      subtitle: Text('Date', style: AppTheme.bodyText.copyWith(color: AppTheme.textSecondary)),
                       onTap: () => _selectReminderDate(context),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusSmall)),
                     ),
                   ),
+                  const SizedBox(width: AppTheme.spacingSm), // Add spacing between the two ListTiles
                   Expanded(
                     child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: AppTheme.spacingSm), // Reduced padding
                       leading: Icon(Icons.schedule, color: AppTheme.accentPrimary),
                       title: Text(
                         _reminderTime?.format(context) ?? 'Select Time',
                         style: AppTheme.bodyText,
                       ),
-                      subtitle: Text('Reminder Time', style: AppTheme.bodyText.copyWith(color: AppTheme.textSecondary)),
+                      subtitle: Text('Time', style: AppTheme.bodyText.copyWith(color: AppTheme.textSecondary)),
                       onTap: () => _selectReminderTime(context),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppTheme.radiusSmall)),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: AppTheme.spacingSm),
-              Container(
-                padding: const EdgeInsets.all(AppTheme.spacingSm),
-                decoration: BoxDecoration(
-                  color: AppTheme.accentPrimary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.info_outline, size: 16, color: AppTheme.accentPrimary),
-                    const SizedBox(width: AppTheme.spacingSm),
-                    Expanded(
-                      child: Text(
-                        'You\'ll receive a notification at the selected time',
-                        style: AppTheme.bodyText.copyWith(color: AppTheme.accentPrimary),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              const SizedBox(height: AppTheme.spacingXs), // Reduced from spacingSm
+              // Container(
+              //   padding: const EdgeInsets.all(AppTheme.spacingXs), // Reduced from spacingSm
+              //   decoration: BoxDecoration(
+              //     color: AppTheme.accentPrimary.withValues(alpha: 0.1),
+              //     borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
+              //   ),
+              //   child: Row(
+              //     children: [
+              //       Icon(Icons.info_outline, size: 16, color: AppTheme.accentPrimary),
+              //       const SizedBox(width: AppTheme.spacingXs), // Reduced from spacingSm
+              //       Expanded(
+              //         child: Text(
+              //           'You\'ll receive a notification at the selected time',
+              //           style: AppTheme.bodyText.copyWith(color: AppTheme.accentPrimary, fontSize: 12), // Slightly smaller text
+              //         ),
+              //       ),
+              //     ],
+              //   ),
+              // ),
             ],
           ],
         ),
