@@ -62,7 +62,7 @@ class MainNavigationScreen extends StatefulWidget {
   State<MainNavigationScreen> createState() => _MainNavigationScreenState();
 }
 
-class _MainNavigationScreenState extends State<MainNavigationScreen> {
+class _MainNavigationScreenState extends State<MainNavigationScreen> with WidgetsBindingObserver {
   int _currentIndex = 0;
   
   final List<Widget> _screens = [
@@ -70,6 +70,29 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     const LogsScreen(),
     const SettingsScreen(),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    
+    // Refresh data when app becomes active
+    if (state == AppLifecycleState.resumed && mounted) {
+      context.read<LogProvider>().loadLogs();
+      context.read<TagProvider>().loadTags();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

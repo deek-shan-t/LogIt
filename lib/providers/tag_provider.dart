@@ -99,8 +99,8 @@ class TagProvider extends ChangeNotifier {
       
       await HiveService.addTag(tag);
       
-      _tags.add(tag);
-      _applyFiltersAndSort();
+      // Reload all tags to ensure data consistency
+      await loadTags();
       
       return true;
     } catch (e) {
@@ -128,12 +128,8 @@ class TagProvider extends ChangeNotifier {
       
       await HiveService.updateTag(updatedTag);
       
-      // Update the tag in the list
-      final index = _tags.indexWhere((tag) => tag.id == updatedTag.id);
-      if (index != -1) {
-        _tags[index] = updatedTag;
-        _applyFiltersAndSort();
-      }
+      // Reload all tags to ensure data consistency  
+      await loadTags();
       
       return true;
     } catch (e) {
@@ -148,9 +144,9 @@ class TagProvider extends ChangeNotifier {
       
       await HiveService.deleteTag(tagId);
       
-      _tags.removeWhere((tag) => tag.id == tagId);
+      // Reload all tags to ensure data consistency
+      await loadTags();
       _selectedTagIds.remove(tagId);
-      _applyFiltersAndSort();
       
       return true;
     } catch (e) {

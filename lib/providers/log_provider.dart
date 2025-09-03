@@ -129,8 +129,8 @@ class LogProvider extends ChangeNotifier {
         await _scheduleReminder(log);
       }
       
-      _logs.add(log);
-      _applyFiltersAndSort();
+      // Reload all logs to ensure data consistency
+      await loadLogs();
       
       return true;
     } catch (e) {
@@ -169,12 +169,8 @@ class LogProvider extends ChangeNotifier {
         }
       }
       
-      // Update the log in the list
-      final index = _logs.indexWhere((log) => log.id == updatedLog.id);
-      if (index != -1) {
-        _logs[index] = updatedLog;
-        _applyFiltersAndSort();
-      }
+      // Reload all logs to ensure data consistency
+      await loadLogs();
       
       return true;
     } catch (e) {
@@ -199,9 +195,9 @@ class LogProvider extends ChangeNotifier {
       
       await HiveService.deleteLogEntry(logId);
       
-      _logs.removeWhere((log) => log.id == logId);
+      // Reload all logs to ensure data consistency
+      await loadLogs();
       _selectedLogIds.remove(logId);
-      _applyFiltersAndSort();
       
       return true;
     } catch (e) {
