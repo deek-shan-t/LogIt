@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:timezone/data/latest.dart' as tz;
-import 'services/hive_service.dart';
-import 'services/preferences_service.dart';
-import 'services/notification_service.dart';
 import 'providers/log_provider.dart';
 import 'providers/tag_provider.dart';
 import 'screens/home_screen.dart';
@@ -11,20 +7,7 @@ import 'screens/logs_screen.dart';
 import 'screens/settings_screen.dart';
 import 'theme/app_theme.dart';
 
-void main() async {
-  // Ensure Flutter binding is initialized
-  WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialize timezone data
-  tz.initializeTimeZones();
-  
-  // Initialize services
-  await PreferencesService.init();
-  await HiveService.init();
-  await NotificationService.init();
-  
-  runApp(const LogitApp());
-}
+// App entry-point & service/time zone setup handled in main.dart.
 
 class LogitApp extends StatelessWidget {
   const LogitApp({super.key});

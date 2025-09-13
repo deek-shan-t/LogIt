@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import '../models/log_entry.dart';
 import '../services/hive_service.dart';
-import '../services/notification_service.dart';
 
 enum LogFilter {
   all,
@@ -10,17 +9,6 @@ enum LogFilter {
   today,
   thisWeek,
   thisMonth,
-}
-
-enum LogSortBy {
-  dateCreated,
-  title,
-  reminderTime,
-}
-
-enum SortOrder {
-  ascending,
-  descending,
 }
 
 class LogProvider extends ChangeNotifier {
@@ -40,13 +28,6 @@ class LogProvider extends ChangeNotifier {
   LogFilter _activeFilter = LogFilter.all;
   final List<String> _selectedTags = [];
   
-  // Sorting state
-  LogSortBy _sortBy = LogSortBy.dateCreated;
-  SortOrder _sortOrder = SortOrder.descending;
-  
-  // Selection state
-  final Set<String> _selectedLogIds = {};
-  
   // Notification tracking
   final Map<String, int> _notificationIds = {};
   int _nextNotificationId = 1000;
@@ -64,17 +45,11 @@ class LogProvider extends ChangeNotifier {
   LogFilter get activeFilter => _activeFilter;
   List<String> get selectedTags => List.unmodifiable(_selectedTags);
   
-  LogSortBy get sortBy => _sortBy;
-  SortOrder get sortOrder => _sortOrder;
-  
-  Set<String> get selectedLogIds => Set.unmodifiable(_selectedLogIds);
-  bool get hasSelection => _selectedLogIds.isNotEmpty;
-  int get selectionCount => _selectedLogIds.length;
-  
-  // Statistics
+  // Statistics (only used ones)
   int get totalLogsCount => _logs.length;
   int get filteredLogsCount => _filteredLogs.length;
-  int get logsWithReminders => _logs.where((log) => log.reminder != null).length;
+  // Backward compatibility getter used by some screens
+  int get logsWithReminders => _logs.where((l) => l.reminder != null).length;
 
   // Initialize the provider
   Future<void> initialize() async {
@@ -129,8 +104,9 @@ class LogProvider extends ChangeNotifier {
         await _scheduleReminder(log);
       }
       
-      // Reload all logs to ensure data consistency
-      await loadLogs();
+      // Add to local list instead of reloading everything
+      _logs.add(log);
+      _applyFiltersAndSort();
       
       return true;
     } catch (e) {
@@ -149,10 +125,12 @@ class LogProvider extends ChangeNotifier {
       }
       
       // Find the original log to handle reminder changes
-      final originalLog = _logs.firstWhere(
-        (log) => log.id == updatedLog.id,
-        orElse: () => throw Exception('Log not found'),
-      );
+      final originalLogIndex = _logs.indexWhere((log) => log.id == updatedLog.id);
+      if (originalLogIndex == -1) {
+        throw Exception('Log not found');
+      }
+      
+      final originalLog = _logs[originalLogIndex];
       
       await HiveService.updateLogEntry(updatedLog);
       
@@ -169,8 +147,9 @@ class LogProvider extends ChangeNotifier {
         }
       }
       
-      // Reload all logs to ensure data consistency
-      await loadLogs();
+      // Update local list instead of reloading everything
+      _logs[originalLogIndex] = updatedLog;
+      _applyFiltersAndSort();
       
       return true;
     } catch (e) {
@@ -184,10 +163,12 @@ class LogProvider extends ChangeNotifier {
       _clearError();
       
       // Find the log to cancel any reminders
-      final log = _logs.firstWhere(
-        (log) => log.id == logId,
-        orElse: () => throw Exception('Log not found'),
-      );
+      final logIndex = _logs.indexWhere((log) => log.id == logId);
+      if (logIndex == -1) {
+        throw Exception('Log not found');
+      }
+      
+      final log = _logs[logIndex];
       
       if (log.reminder != null) {
         await _cancelReminder(log);
@@ -195,9 +176,9 @@ class LogProvider extends ChangeNotifier {
       
       await HiveService.deleteLogEntry(logId);
       
-      // Reload all logs to ensure data consistency
-      await loadLogs();
-      _selectedLogIds.remove(logId);
+      // Remove from local list instead of reloading everything
+      _logs.removeAt(logIndex);
+      _applyFiltersAndSort();
       
       return true;
     } catch (e) {
@@ -207,33 +188,8 @@ class LogProvider extends ChangeNotifier {
   }
 
   Future<bool> deleteSelectedLogs() async {
-    if (_selectedLogIds.isEmpty) return false;
-    
-    try {
-      _clearError();
-      
-      final logsToDelete = _logs.where((log) => _selectedLogIds.contains(log.id)).toList();
-      
-      // Cancel reminders for logs that have them
-      for (final log in logsToDelete) {
-        if (log.reminder != null) {
-          await _cancelReminder(log);
-        }
-      }
-      
-      // Delete from Hive
-      await HiveService.deleteLogEntries(List.from(_selectedLogIds));
-      
-      // Remove from local list
-      _logs.removeWhere((log) => _selectedLogIds.contains(log.id));
-      _selectedLogIds.clear();
-      _applyFiltersAndSort();
-      
-      return true;
-    } catch (e) {
-      _setError('Failed to delete selected logs: $e');
-      return false;
-    }
+    // This method is not used in the UI, but keeping for potential future use
+    return false;
   }
 
   // Date management
@@ -242,29 +198,9 @@ class LogProvider extends ChangeNotifier {
     _applyFiltersAndSort();
   }
 
-  void selectDate(DateTime date) {
-    setSelectedDate(date);
-  }
-
-  void clearSelectedDate() {
-    _selectedDate = DateTime.now();
-    _applyFiltersAndSort();
-  }
-
-  void selectToday() {
-    _selectedDate = DateTime.now();
-    _applyFiltersAndSort();
-  }
-
-  void selectYesterday() {
-    _selectedDate = DateTime.now().subtract(const Duration(days: 1));
-    _applyFiltersAndSort();
-  }
-
-  void selectTomorrow() {
-    _selectedDate = DateTime.now().add(const Duration(days: 1));
-    _applyFiltersAndSort();
-  }
+  void selectToday() => setSelectedDate(DateTime.now());
+  // Backwards-compatible alias (used by existing screens)
+  void selectDate(DateTime date) => setSelectedDate(date);
 
   List<LogEntry> getLogsForDate(DateTime date) {
     final startOfDay = DateTime(date.year, date.month, date.day);
@@ -275,21 +211,9 @@ class LogProvider extends ChangeNotifier {
     ).toList();
   }
 
-  List<LogEntry> getLogsForDateRange(DateTime startDate, DateTime endDate) {
-    return _logs.where((log) =>
-      log.dateTime.isAfter(startDate.subtract(const Duration(days: 1))) &&
-      log.dateTime.isBefore(endDate.add(const Duration(days: 1)))
-    ).toList();
-  }
-
   // Search and filter
   void setSearchQuery(String query) {
     _searchQuery = query.toLowerCase();
-    _applyFiltersAndSort();
-  }
-
-  void clearSearch() {
-    _searchQuery = '';
     _applyFiltersAndSort();
   }
 
@@ -306,13 +230,9 @@ class LogProvider extends ChangeNotifier {
   }
 
   void removeSelectedTag(String tag) {
-    _selectedTags.remove(tag);
-    _applyFiltersAndSort();
-  }
-
-  void clearSelectedTags() {
-    _selectedTags.clear();
-    _applyFiltersAndSort();
+    if (_selectedTags.remove(tag)) {
+      _applyFiltersAndSort();
+    }
   }
 
   void clearAllFilters() {
@@ -322,98 +242,31 @@ class LogProvider extends ChangeNotifier {
     _applyFiltersAndSort();
   }
 
-  // Sorting
-  void setSortBy(LogSortBy sortBy, {SortOrder? order}) {
-    _sortBy = sortBy;
-    if (order != null) {
-      _sortOrder = order;
-    }
+  // Individual clear methods for backward compatibility
+  void clearSearch() {
+    _searchQuery = '';
     _applyFiltersAndSort();
   }
 
-  void toggleSortOrder() {
-    _sortOrder = _sortOrder == SortOrder.ascending 
-        ? SortOrder.descending 
-        : SortOrder.ascending;
+  void clearSelectedTags() {
+    _selectedTags.clear();
     _applyFiltersAndSort();
   }
 
-  // Selection
-  void selectLog(String logId) {
-    _selectedLogIds.add(logId);
-    notifyListeners();
+  void clearSelectedDate() {
+    _selectedDate = DateTime.now();
+    _applyFiltersAndSort();
   }
 
-  void deselectLog(String logId) {
-    _selectedLogIds.remove(logId);
-    notifyListeners();
-  }
-
-  void toggleLogSelection(String logId) {
-    if (_selectedLogIds.contains(logId)) {
-      _selectedLogIds.remove(logId);
-    } else {
-      _selectedLogIds.add(logId);
-    }
-    notifyListeners();
-  }
-
-  void selectAllVisible() {
-    _selectedLogIds.addAll(_filteredLogs.map((log) => log.id));
-    notifyListeners();
-  }
-
-  void deselectAll() {
-    _selectedLogIds.clear();
-    notifyListeners();
-  }
-
-  bool isLogSelected(String logId) {
-    return _selectedLogIds.contains(logId);
-  }
-
-  // Reminder management
+  // Reminder management - removed notification functionality
   Future<void> _scheduleReminder(LogEntry log) async {
-    if (log.reminder == null) return;
-    
-    try {
-      await NotificationService.init();
-      await NotificationService.requestPermissions();
-      
-      final notificationId = _getNextNotificationId();
-      _notificationIds[log.id] = notificationId;
-      
-      await NotificationService.scheduleNotification(
-        id: notificationId,
-        title: 'Log Reminder',
-        body: log.title,
-        scheduledTime: log.reminder!,
-      );
-    } catch (e) {
-      debugPrint('Failed to schedule reminder for log ${log.id}: $e');
-    }
+    // Notification functionality removed
+    return;
   }
 
   Future<void> _cancelReminder(LogEntry log) async {
-    final notificationId = _notificationIds[log.id];
-    if (notificationId != null) {
-      try {
-        await NotificationService.cancelNotification(notificationId);
-        _notificationIds.remove(log.id);
-      } catch (e) {
-        debugPrint('Failed to cancel reminder for log ${log.id}: $e');
-      }
-    }
-  }
-
-  Future<void> updateLogReminder(String logId, DateTime? newReminder) async {
-    final log = _logs.firstWhere(
-      (log) => log.id == logId,
-      orElse: () => throw Exception('Log not found'),
-    );
-    
-    final updatedLog = log.copyWith(reminder: newReminder);
-    await updateLog(updatedLog);
+    // Notification functionality removed
+    return;
   }
 
   List<LogEntry> getLogsWithActiveReminders() {
@@ -421,22 +274,6 @@ class LogProvider extends ChangeNotifier {
     return _logs.where((log) => 
       log.reminder != null && log.reminder!.isAfter(now)
     ).toList();
-  }
-
-  List<LogEntry> getOverdueReminders() {
-    final now = DateTime.now();
-    return _logs.where((log) => 
-      log.reminder != null && log.reminder!.isBefore(now)
-    ).toList();
-  }
-
-  // Utility methods
-  LogEntry? getLogById(String id) {
-    try {
-      return _logs.firstWhere((log) => log.id == id);
-    } catch (e) {
-      return null;
-    }
   }
 
   List<String> getAllTags() {
@@ -457,27 +294,38 @@ class LogProvider extends ChangeNotifier {
     return tagCounts;
   }
 
-  // Private helper methods
   void _applyFiltersAndSort() {
     _filteredLogs = List.from(_logs);
     
-    // Apply search filter
-    if (_searchQuery.isNotEmpty) {
-      _filteredLogs = _filteredLogs.where((log) =>
-        log.title.toLowerCase().contains(_searchQuery) ||
-        log.description.toLowerCase().contains(_searchQuery) ||
-        log.tags.any((tag) => tag.toLowerCase().contains(_searchQuery))
-      ).toList();
-    }
+    _applySearchFilter();
+    _applyTagFilter();
+    _applyCategoryFilter();
     
-    // Apply tag filter
-    if (_selectedTags.isNotEmpty) {
-      _filteredLogs = _filteredLogs.where((log) =>
-        _selectedTags.every((tag) => log.tags.contains(tag))
-      ).toList();
-    }
+    // Simple date-based sorting (newest first)
+    _filteredLogs.sort((a, b) => b.dateTime.compareTo(a.dateTime));
     
-    // Apply category filter
+    notifyListeners();
+  }
+
+  void _applySearchFilter() {
+    if (_searchQuery.isEmpty) return;
+    
+    _filteredLogs = _filteredLogs.where((log) =>
+      log.title.toLowerCase().contains(_searchQuery) ||
+      log.description.toLowerCase().contains(_searchQuery) ||
+      log.tags.any((tag) => tag.toLowerCase().contains(_searchQuery))
+    ).toList();
+  }
+
+  void _applyTagFilter() {
+    if (_selectedTags.isEmpty) return;
+    
+    _filteredLogs = _filteredLogs.where((log) =>
+      _selectedTags.every((tag) => log.tags.contains(tag))
+    ).toList();
+  }
+
+  void _applyCategoryFilter() {
     switch (_activeFilter) {
       case LogFilter.withReminders:
         _filteredLogs = _filteredLogs.where((log) => log.reminder != null).toList();
@@ -486,61 +334,39 @@ class LogProvider extends ChangeNotifier {
         _filteredLogs = _filteredLogs.where((log) => log.reminder == null).toList();
         break;
       case LogFilter.today:
-        final today = DateTime.now();
-        final startOfDay = DateTime(today.year, today.month, today.day);
-        final endOfDay = startOfDay.add(const Duration(days: 1));
-        _filteredLogs = _filteredLogs.where((log) =>
-          log.dateTime.isAfter(startOfDay) && log.dateTime.isBefore(endOfDay)
-        ).toList();
+        _filteredLogs = _getLogsForDay(DateTime.now());
         break;
       case LogFilter.thisWeek:
-        final now = DateTime.now();
-        final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
-        final startOfWeekDay = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
-        _filteredLogs = _filteredLogs.where((log) =>
-          log.dateTime.isAfter(startOfWeekDay)
-        ).toList();
+        _filteredLogs = _getLogsForCurrentWeek();
         break;
       case LogFilter.thisMonth:
-        final now = DateTime.now();
-        final startOfMonth = DateTime(now.year, now.month, 1);
-        _filteredLogs = _filteredLogs.where((log) =>
-          log.dateTime.isAfter(startOfMonth)
-        ).toList();
+        _filteredLogs = _getLogsForCurrentMonth();
         break;
       case LogFilter.all:
         // No additional filtering
         break;
     }
-    
-    // Apply sorting
-    _filteredLogs.sort((a, b) {
-      int comparison;
-      
-      switch (_sortBy) {
-        case LogSortBy.title:
-          comparison = a.title.compareTo(b.title);
-          break;
-        case LogSortBy.reminderTime:
-          if (a.reminder == null && b.reminder == null) {
-            comparison = 0;
-          } else if (a.reminder == null) {
-            comparison = 1; // Null reminders go to the end
-          } else if (b.reminder == null) {
-            comparison = -1;
-          } else {
-            comparison = a.reminder!.compareTo(b.reminder!);
-          }
-          break;
-        case LogSortBy.dateCreated:
-          comparison = a.dateTime.compareTo(b.dateTime);
-          break;
-      }
-      
-      return _sortOrder == SortOrder.ascending ? comparison : -comparison;
-    });
-    
-    notifyListeners();
+  }
+
+  List<LogEntry> _getLogsForDay(DateTime day) {
+    final startOfDay = DateTime(day.year, day.month, day.day);
+    final endOfDay = startOfDay.add(const Duration(days: 1));
+    return _filteredLogs.where((log) =>
+      log.dateTime.isAfter(startOfDay) && log.dateTime.isBefore(endOfDay)
+    ).toList();
+  }
+
+  List<LogEntry> _getLogsForCurrentWeek() {
+    final now = DateTime.now();
+    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+    final startOfWeekDay = DateTime(startOfWeek.year, startOfWeek.month, startOfWeek.day);
+    return _filteredLogs.where((log) => log.dateTime.isAfter(startOfWeekDay)).toList();
+  }
+
+  List<LogEntry> _getLogsForCurrentMonth() {
+    final now = DateTime.now();
+    final startOfMonth = DateTime(now.year, now.month, 1);
+    return _filteredLogs.where((log) => log.dateTime.isAfter(startOfMonth)).toList();
   }
 
   void _setLoading(bool loading) {
@@ -553,21 +379,12 @@ class LogProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _clearError() {
-    _error = null;
-    notifyListeners();
-  }
+  void _clearError() => _error = null;
 
-  String _generateId() {
-    final timestamp = DateTime.now().millisecondsSinceEpoch;
-    return 'log_$timestamp';
-  }
+  String _generateId() => 'log_${DateTime.now().millisecondsSinceEpoch}';
 
-  int _getNextNotificationId() {
-    return _nextNotificationId++;
-  }
+  int _getNextNotificationId() => _nextNotificationId++;
 
-  // Cleanup
   @override
   Future<void> dispose() async {
     // Cancel all active reminders
@@ -578,7 +395,6 @@ class LogProvider extends ChangeNotifier {
     
     _logs.clear();
     _filteredLogs.clear();
-    _selectedLogIds.clear();
     _notificationIds.clear();
     
     super.dispose();

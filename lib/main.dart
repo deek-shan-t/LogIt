@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:timezone/data/latest.dart' as tz;
+import 'services/preferences_service.dart';
+import 'services/hive_service.dart';
 import 'app.dart';
 
 void main() async {
-  // Ensure Flutter binding is initialized
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Initialize timezone data
-  tz.initializeTimeZones();
-  
+
+  // Initialize core services BEFORE running the app (so providers can access them)
+  await PreferencesService.init();
+  await HiveService.init();
+
   runApp(const LogitApp());
 }

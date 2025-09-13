@@ -6,7 +6,6 @@ import '../widgets/log_entry_card.dart';
 import '../models/log_entry.dart';
 import 'add_log_screen.dart';
 import 'edit_log_screen.dart';
-import '../utils/developer_utils.dart';
 import '../theme/app_theme.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -33,20 +32,6 @@ class _HomeScreenState extends State<HomeScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Logit'),
-        actions: [
-          // IconButton(
-          //   icon: const Icon(Icons.science),
-          //   onPressed: () => DeveloperUtils.createSampleData(context),
-          //   tooltip: 'Create Sample Data',
-          // ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: () {
-              context.read<LogProvider>().initialize();
-              context.read<TagProvider>().initialize();
-            },
-          ),
-        ],
       ),
       body: Consumer2<LogProvider, TagProvider>(
         builder: (context, logProvider, tagProvider, child) {

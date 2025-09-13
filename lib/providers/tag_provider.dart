@@ -2,16 +2,6 @@ import 'package:flutter/foundation.dart';
 import '../models/tag.dart';
 import '../services/hive_service.dart';
 
-enum TagSortBy {
-  name,
-  color,
-}
-
-enum SortOrder {
-  ascending,
-  descending,
-}
-
 class TagProvider extends ChangeNotifier {
   // Core data
   List<Tag> _tags = [];
@@ -24,12 +14,7 @@ class TagProvider extends ChangeNotifier {
   // Filter and search state
   String _searchQuery = '';
   
-  // Sorting state
-  TagSortBy _sortBy = TagSortBy.name;
-  SortOrder _sortOrder = SortOrder.ascending;
-  
-  // Selection state
-  final Set<String> _selectedTagIds = {};
+  // (Removed sorting & selection state)
 
   // Getters
   List<Tag> get tags => List.unmodifiable(_tags);
@@ -40,14 +25,7 @@ class TagProvider extends ChangeNotifier {
   bool get isEmpty => _tags.isEmpty;
   
   String get searchQuery => _searchQuery;
-  TagSortBy get sortBy => _sortBy;
-  SortOrder get sortOrder => _sortOrder;
-  
-  Set<String> get selectedTagIds => Set.unmodifiable(_selectedTagIds);
-  bool get hasSelection => _selectedTagIds.isNotEmpty;
-  int get selectionCount => _selectedTagIds.length;
-  
-  // Statistics
+  // Statistics (only those used externally)
   int get totalTagsCount => _tags.length;
   int get filteredTagsCount => _filteredTags.length;
 
@@ -64,7 +42,7 @@ class TagProvider extends ChangeNotifier {
       
       final tags = await HiveService.getAllTags();
       _tags = tags;
-      _applyFiltersAndSort();
+  _applyFilters();
       
       _setLoading(false);
     } catch (e) {
@@ -99,8 +77,9 @@ class TagProvider extends ChangeNotifier {
       
       await HiveService.addTag(tag);
       
-      // Reload all tags to ensure data consistency
-      await loadTags();
+  // Add locally instead of full reload
+  _tags.add(tag);
+  _applyFilters();
       
       return true;
     } catch (e) {
@@ -127,9 +106,11 @@ class TagProvider extends ChangeNotifier {
       }
       
       await HiveService.updateTag(updatedTag);
-      
-      // Reload all tags to ensure data consistency  
-      await loadTags();
+      final idx = _tags.indexWhere((t) => t.id == updatedTag.id);
+      if (idx != -1) {
+        _tags[idx] = updatedTag;
+      }
+      _applyFilters();
       
       return true;
     } catch (e) {
@@ -142,11 +123,9 @@ class TagProvider extends ChangeNotifier {
     try {
       _clearError();
       
-      await HiveService.deleteTag(tagId);
-      
-      // Reload all tags to ensure data consistency
-      await loadTags();
-      _selectedTagIds.remove(tagId);
+  await HiveService.deleteTag(tagId);
+  _tags.removeWhere((t) => t.id == tagId);
+  _applyFilters();
       
       return true;
     } catch (e) {
@@ -155,155 +134,32 @@ class TagProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> deleteSelectedTags() async {
-    if (_selectedTagIds.isEmpty) return false;
-    
-    try {
-      _clearError();
-      
-      // Delete from Hive
-      await HiveService.deleteTags(List.from(_selectedTagIds));
-      
-      // Remove from local list
-      _tags.removeWhere((tag) => _selectedTagIds.contains(tag.id));
-      _selectedTagIds.clear();
-      _applyFiltersAndSort();
-      
-      return true;
-    } catch (e) {
-      _setError('Failed to delete selected tags: $e');
-      return false;
-    }
-  }
+  Future<bool> deleteSelectedTags() async => false; // Selection removed
 
   // Search and filter
   void setSearchQuery(String query) {
     _searchQuery = query.toLowerCase();
-    _applyFiltersAndSort();
+  _applyFilters();
   }
 
   void clearSearch() {
     _searchQuery = '';
-    _applyFiltersAndSort();
+  _applyFilters();
   }
 
-  // Sorting
-  void setSortBy(TagSortBy sortBy, {SortOrder? order}) {
-    _sortBy = sortBy;
-    if (order != null) {
-      _sortOrder = order;
-    }
-    _applyFiltersAndSort();
-  }
-
-  void toggleSortOrder() {
-    _sortOrder = _sortOrder == SortOrder.ascending 
-        ? SortOrder.descending 
-        : SortOrder.ascending;
-    _applyFiltersAndSort();
-  }
-
-  // Selection
-  void selectTag(String tagId) {
-    _selectedTagIds.add(tagId);
-    notifyListeners();
-  }
-
-  void deselectTag(String tagId) {
-    _selectedTagIds.remove(tagId);
-    notifyListeners();
-  }
-
-  void toggleTagSelection(String tagId) {
-    if (_selectedTagIds.contains(tagId)) {
-      _selectedTagIds.remove(tagId);
-    } else {
-      _selectedTagIds.add(tagId);
-    }
-    notifyListeners();
-  }
-
-  void selectAll() {
-    _selectedTagIds.addAll(_filteredTags.map((tag) => tag.id));
-    notifyListeners();
-  }
-
-  void selectAllVisible() {
-    _selectedTagIds.addAll(_filteredTags.map((tag) => tag.id));
-    notifyListeners();
-  }
-
-  void deselectAll() {
-    _selectedTagIds.clear();
-    notifyListeners();
-  }
-
-  bool isTagSelected(String tagId) {
-    return _selectedTagIds.contains(tagId);
-  }
+  // (Removed sorting & selection public API)
 
   // Utility methods
-  Tag? getTagById(String id) {
-    try {
-      return _tags.firstWhere((tag) => tag.id == id);
-    } catch (e) {
-      return null;
-    }
-  }
-
-  List<String> getAvailableColors() {
-    final colorSet = <String>{};
-    for (final tag in _tags) {
-      if (tag.colorHex != null && tag.colorHex!.isNotEmpty) {
-        colorSet.add(tag.colorHex!);
-      }
-    }
-    return colorSet.toList();
-  }
-
-  Map<String, int> getColorUsageStats() {
-    final colorCounts = <String, int>{};
-    for (final tag in _tags) {
-      if (tag.colorHex != null && tag.colorHex!.isNotEmpty) {
-        colorCounts[tag.colorHex!] = (colorCounts[tag.colorHex!] ?? 0) + 1;
-      }
-    }
-    return colorCounts;
-  }
-
-  List<Tag> getTagsByColor(String colorHex) {
-    return _tags.where((tag) => tag.colorHex == colorHex).toList();
-  }
+  // (Removed unused utility methods)
 
   // Private helper methods
-  void _applyFiltersAndSort() {
+  void _applyFilters() {
     _filteredTags = List.from(_tags);
-    
-    // Apply search filter
     if (_searchQuery.isNotEmpty) {
-      _filteredTags = _filteredTags.where((tag) =>
-        tag.name.toLowerCase().contains(_searchQuery)
-      ).toList();
+      _filteredTags = _filteredTags.where((t) => t.name.toLowerCase().contains(_searchQuery)).toList();
     }
-    
-    // Apply sorting
-    _filteredTags.sort((a, b) {
-      int comparison;
-      
-      switch (_sortBy) {
-        case TagSortBy.name:
-          comparison = a.name.compareTo(b.name);
-          break;
-        case TagSortBy.color:
-          final aColor = a.colorHex ?? '';
-          final bColor = b.colorHex ?? '';
-          comparison = aColor.compareTo(bColor);
-          break;
-      }
-      
-      return _sortOrder == SortOrder.ascending ? comparison : -comparison;
-    });
-    
+    // Always keep alphabetical by name for consistency
+    _filteredTags.sort((a, b) => a.name.compareTo(b.name));
     notifyListeners();
   }
 
@@ -317,10 +173,7 @@ class TagProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _clearError() {
-    _error = null;
-    notifyListeners();
-  }
+  void _clearError() { _error = null; notifyListeners(); }
 
   String _generateId() {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
@@ -332,7 +185,6 @@ class TagProvider extends ChangeNotifier {
   void dispose() {
     _tags.clear();
     _filteredTags.clear();
-    _selectedTagIds.clear();
     super.dispose();
   }
 }

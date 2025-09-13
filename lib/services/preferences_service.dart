@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 class PreferencesService {
   static const String themeModeKey = 'theme_mode';
   static const String usernameKey = 'username';
-  static const String notificationsEnabledKey = 'notifications_enabled';
   static const String appConfigVersionKey = 'app_config_version';
 
   static SharedPreferences? _prefs;
@@ -45,15 +44,6 @@ class PreferencesService {
     }
   }
 
-  static bool get notificationsEnabled => _prefs?.getBool(notificationsEnabledKey) ?? true;
-  static Future<void> setNotificationsEnabled(bool enabled) async {
-    try {
-      await _prefs?.setBool(notificationsEnabledKey, enabled);
-    } catch (e) {
-      throw Exception('Failed to set notifications: $e');
-    }
-  }
-
   // App Configuration
   static int get appConfigVersion => _prefs?.getInt(appConfigVersionKey) ?? 1;
   static Future<void> setAppConfigVersion(int version) async {
@@ -69,8 +59,7 @@ class PreferencesService {
     if (fromVersion == toVersion) return;
     // Example migration logic
     if (fromVersion < 2 && toVersion >= 2) {
-      // Migrate settings for version 2
-      await setNotificationsEnabled(true); // Set default for new setting
+      // Migration logic can be added here if needed
     }
     await setAppConfigVersion(toVersion);
   }
